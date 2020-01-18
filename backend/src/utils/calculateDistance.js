@@ -1,5 +1,5 @@
 function deg2rad(deg) {
-    return deg * (Math.PI / 180);
+    retur deg * (Math.PI / 180);
   }
   
   //formula de raverseene
