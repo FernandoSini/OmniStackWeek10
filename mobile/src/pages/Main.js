@@ -5,14 +5,16 @@ import { requestPermissionsAsync, getCurrentPositionAsync } from 'expo-location'
 import { MaterialIcons } from '@expo/vector-icons'
 
 import api from '../services/api'
+import socket from '../services/socket'
+import { connect, disconnect, subscribeToNewDevs } from '../services/socket';
 
 function Main({ navigation }) { //pegando somente a propriedade navigation
-    
+
     const [devs, setDevs] = useState([]) //pq são varios devs, armazenando uma busca da api em algum estado
 
     const [currentRegion, setCurrentRegion] = useState(null)
     const [techs, setTechs] = useState('')
-    
+
     useEffect(() => {
         async function loadInitialPosition() {
             const { granted } = await requestPermissionsAsync();
@@ -37,6 +39,23 @@ function Main({ navigation }) { //pegando somente a propriedade navigation
         loadInitialPosition()
     }, [])
 
+    useEffect(() => {
+        subscribeToNewDevs(dev=> setDevs([...devs, dev]))
+    }, [devs])// monitorar a variavel devs, toda vez que ela alterar vai executar a funç~so subscibetonewdevs
+
+    function setupWebSocket() {
+        //regra de negocios
+        disconnect() // disconnectar do socket caso esteja conectado
+
+        const { latitude, longitude } = currentRegion;
+
+        connect(
+            latitude,
+            longitude,
+            techs,
+        )
+    }
+
     async function loadDevs() {
         const { latitude, longitude } = currentRegion
         const response = await api.get('/search', {
@@ -46,7 +65,10 @@ function Main({ navigation }) { //pegando somente a propriedade navigation
                 techs
             }
         })
+
         setDevs(response.data.devs)
+
+        setupWebSocket();
     }
 
     function handleRegionChanged(region) {
@@ -64,32 +86,32 @@ function Main({ navigation }) { //pegando somente a propriedade navigation
                 onRegionCHangeComplete={handleRegionChanged}
                 initialRegion={currentRegion}
                 style={styles.map}>
-            {devs.map( dev=> ( // é () pq é o retorno de alguma coisa e não o conteudo da função
-                 <MarkerAnimated
-                key={dev._id}
-                 coordinate={{
-                     latitude: dev.location.coordinates[1],
-                     longitude: dev.location.coordinates[0]
-                 }}>
-                 <Image
-                     style={styles.avatar}
-                     source={{ uri: dev.avatar_url }}></Image>
+                {devs.map(dev => ( // é () pq é o retorno de alguma coisa e não o conteudo da função
+                    <MarkerAnimated
+                        key={dev._id}
+                        coordinate={{
+                            latitude: dev.location.coordinates[1],
+                            longitude: dev.location.coordinates[0]
+                        }}>
+                        <Image
+                            style={styles.avatar}
+                            source={{ uri: dev.avatar_url }}></Image>
 
 
-                 <Callout onPress={() => {
-                     // função que irá executar a navegação
-                     navigation.navigate('Profile', { github_username: dev.github_username })
-                 }}>
-                     <View style={styles.Callout}>
+                        <Callout onPress={() => {
+                            // função que irá executar a navegação
+                            navigation.navigate('Profile', { github_username: dev.github_username })
+                        }}>
+                            <View style={styles.Callout}>
 
-                         <Text style={styles.devName}>{dev.name}</Text>
-                         <Text style={styles.devBio}>{dev.bio}</Text>
-                         <Text style={styles.devTechs}>{dev.techs.join(', ')}</Text>
-                     </View>
+                                <Text style={styles.devName}>{dev.name}</Text>
+                                <Text style={styles.devBio}>{dev.bio}</Text>
+                                <Text style={styles.devTechs}>{dev.techs.join(', ')}</Text>
+                            </View>
 
-                 </Callout>
-             </MarkerAnimated>
-            ))}
+                        </Callout>
+                    </MarkerAnimated>
+                ))}
             </MapView>
             <View style={styles.searchForm}>
                 <TextInput

@@ -3,6 +3,8 @@ const axios = require('axios') //axios faz chamadas para outras apis disponiveis
 const Dev = require('../models/Dev')
 
 const parseStringAsArray = require('../utils/parseStringAsArray')
+const { findConnections, sendMessage } = require('../websocket')
+
 //5 funcoes do controller
 //index(mostrar uma lista de recursos no caso dev), 
 //show(mostra um unico dev)
@@ -10,12 +12,12 @@ const parseStringAsArray = require('../utils/parseStringAsArray')
 //update(alterar dev)
 //destroy(deletar dev)
 module.exports = {
-    async index(request, response){
+    async index(request, response) {
         const devs = await Dev.find()
         return response.json(devs)
     },
 
-    
+
     async store(request, response) { // o async significa que a funcção pode demorar para responder, pq a api pode demorar pra responder
         //cadastro dos devs
         const { github_username, techs, latitude, longitude } = request.body
@@ -40,16 +42,24 @@ module.exports = {
                 techs: techsArray,
                 location
             })
+
+            //filtrar as conexões que estão há no máximo 10Km de distancia e que o dev tenha pelo menos uma das tecnologias filtradas
+            const sendSocketMessageTo = findConnections(
+                { latitude, longitude },
+                techsArray
+            )
+            console.log(sendSocketMessageTo)
+            sendMessage(sendSocketMessageTo, 'nem-dev', dev)
         }
 
 
 
         return response.json(dev)
     },
-    async update(){
+    async update() {
         //implementar função para atualizar
     },
-    async destroy(){
+    async destroy() {
         //função para excluir os dados
     }
 }

@@ -5,10 +5,15 @@ const express = require('express')
 const mongoose = require('mongoose')
 const routes = require('./routes')
 const cors = require('cors')
+const http = require('http') // protocolo http que vai fazer com que as requisições ouçam as requisições
+const { setupWebSocket } = require('./websocket')
 
 const app = express()
+const server = http.Server(app)  // servidor http fora do express
 
-mongoose.connect('mongodb+srv://fernando:fernando@cluster0-mgii7.mongodb.net/week10?retryWrites=true&w=majority',{
+setupWebSocket(server)
+
+mongoose.connect('mongodb+srv://fernando:fernando@cluster0-mgii7.mongodb.net/week10?retryWrites=true&w=majority', {
     useNewUrlParser: true,
     useUnifiedTopology: true,
 })
@@ -28,4 +33,4 @@ app.post('/users/:id', (request, response) => {
     return response.json({ message: 'Hello Omnistack' })
 }) // caminho que está sendo acessado só barra representa localhost:3333
 
-app.listen(3333);
+server.listen(3333);
